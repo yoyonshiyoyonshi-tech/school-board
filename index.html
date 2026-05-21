@@ -153,6 +153,9 @@
 
     };
 
+    // 【連投防止】直前のスレッド内容を記録する変数
+    let lastThreadContent = "";
+
     // 投稿
     button.onclick = () => {
 
@@ -164,6 +167,18 @@
 
       const userId = createId();
 
+      // 空っぽの投稿を制限
+      if (!title.trim() || !content.trim()) {
+        alert("タイトルと内容を入力してください");
+        return;
+      }
+
+      // 連投防止：同じ内容を続けて投稿しようとしたらブロック
+      if (content === lastThreadContent) {
+        alert("同じ内容は連続で投稿できません！");
+        return;
+      }
+
       // Firebase保存
       push(threadRef, {
 
@@ -174,6 +189,29 @@
         content: content
 
       });
+
+      // 今回の投稿内容を記録
+      lastThreadContent = content;
+
+      // 連投防止：3秒間ボタンを押せなくするタイマー
+      button.disabled = true;
+      button.innerText = "残り3秒...";
+      
+      let sec = 3;
+      const timer = setInterval(() => {
+        sec--;
+        if (sec > 0) {
+          button.innerText = `残り${sec}秒...`;
+        } else {
+          clearInterval(timer);
+          button.disabled = false;
+          button.innerText = "投稿";
+        }
+      }, 1000);
+
+      // 入力欄をクリア
+      document.getElementById("title").value = "";
+      document.getElementById("content").value = "";
 
     };
 
@@ -220,6 +258,9 @@
       const commentsDiv =
         div.querySelector(".comments");
 
+      // 【連投防止】直前の返信コメントを記録する変数
+      let lastCommentText = "";
+
       // コメント投稿
       commentButton.onclick = () => {
 
@@ -228,6 +269,18 @@
 
         const userId = createId();
 
+        // 空っぽのコメントを制限
+        if (!comment.trim()) {
+          alert("コメントを入力してください");
+          return;
+        }
+
+        // 連投防止：同じコメントを続けて送信しようとしたらブロック
+        if (comment === lastCommentText) {
+          alert("同じコメントは連続で送信できません！");
+          return;
+        }
+
         push(commentRef, {
 
           id: userId,
@@ -235,6 +288,21 @@
           text: comment
 
         });
+
+        // 今回のコメント内容を記録
+        lastCommentText = comment;
+
+        // 連投防止：3秒間返信ボタンを押せなくする
+        commentButton.disabled = true;
+        commentButton.innerText = "3秒待ってね";
+
+        setTimeout(() => {
+          commentButton.disabled = false;
+          commentButton.innerText = "返信";
+        }, 3000);
+
+        // 入力欄をクリア
+        commentInput.value = "";
 
       };
 
