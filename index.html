@@ -28,11 +28,29 @@
 
     <h1>匿名掲示板</h1>
 
+    <!-- 【追加】カテゴリ切り替えボタン -->
+    <div id="category-tabs" style="margin-bottom: 20px;">
+      <button class="tab-button" onclick="filterCategory('all')">すべて</button>
+      <button class="tab-button" onclick="filterCategory('クラス')">クラス</button>
+      <button class="tab-button" onclick="filterCategory('部活')">部活</button>
+      <button class="tab-button" onclick="filterCategory('勉強')">勉強</button>
+    </div>
+
     <div id="thread-list"></div>
 
     <h2>スレッド作成</h2>
 
     <input id="title" placeholder="タイトル">
+
+    <!-- 【追加】スレッド作成時のカテゴリ選択 -->
+    <div style="margin: 10px 0;">
+      <label for="category-select">カテゴリ：</label>
+      <select id="category-select">
+        <option value="クラス">クラス</option>
+        <option value="部活">部活</option>
+        <option value="勉強">勉強</option>
+      </select>
+    </div>
 
     <textarea id="content"
       placeholder="内容"></textarea>
@@ -46,7 +64,7 @@
   <script type="module">
 
     import { initializeApp }
-      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      from "https://gstatic.com";
 
     import {
       getDatabase,
@@ -54,7 +72,7 @@
       push,
       onChildAdded
     }
-      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+      from "https://gstatic.com";
 
     // Firebase設定
     const firebaseConfig = {
@@ -63,10 +81,10 @@
         "AIzaSyCQBiaZGtV97pfrpNMZcnmvs0IYoiE_ucQ",
 
       authDomain:
-        "school-board-d7ca6.firebaseapp.com",
+        "://firebaseapp.com",
 
       databaseURL:
-        "https://school-board-d7ca6-default-rtdb.asia-southeast1.firebasedatabase.app",
+        "https://firebasedatabase.app",
 
       projectId:
         "school-board-d7ca6",
@@ -165,6 +183,10 @@
       const content =
         document.getElementById("content").value;
 
+      // 【追加】選択されたカテゴリを取得
+      const category = 
+        document.getElementById("category-select").value;
+
       const userId = createId();
 
       // 空っぽの投稿を制限
@@ -179,14 +201,16 @@
         return;
       }
 
-      // Firebase保存
+      // Firebase保存（categoryも一緒に保存する）
       push(threadRef, {
 
         id: userId,
 
         title: title,
 
-        content: content
+        content: content,
+
+        category: category // 【追加】
 
       });
 
@@ -226,9 +250,13 @@
         document.createElement("div");
 
       div.className = "thread";
+      
+      // 【追加】データ属性にカテゴリ名を保存（絞り込みで使います）
+      div.setAttribute("data-category", thread.category || "クラス");
 
+      // 【追加】タイトルの横にカテゴリ名を表示するように変更
       div.innerHTML = `
-        <h3>${thread.title}</h3>
+        <h3>[${thread.category || "クラス"}] ${thread.title}</h3>
 
         <small>${thread.id}</small>
 
@@ -328,6 +356,21 @@
       threadList.appendChild(div);
 
     });
+
+    // 【追加】カテゴリでスレッドを絞り込む関数
+    window.filterCategory = function(category) {
+      const threads = document.getElementsByClassName("thread");
+      
+      for (let i = 0; i < threads.length; i++) {
+        const threadCategory = threads[i].getAttribute("data-category");
+        
+        if (category === "all" || threadCategory === category) {
+          threads[i].style.display = "block"; // 一致したら表示
+        } else {
+          threads[i].style.display = "none";  // 一致しなければ非表示
+        }
+      }
+    };
 
   </script>
 
