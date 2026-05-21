@@ -28,12 +28,12 @@
 
     <h1>匿名掲示板</h1>
 
-    <!-- 【追加】カテゴリ切り替えボタン -->
+    <!-- カテゴリ切り替えボタン -->
     <div id="category-tabs" style="margin-bottom: 20px;">
-      <button class="tab-button" onclick="filterCategory('all')">すべて</button>
-      <button class="tab-button" onclick="filterCategory('クラス')">クラス</button>
-      <button class="tab-button" onclick="filterCategory('部活')">部活</button>
-      <button class="tab-button" onclick="filterCategory('勉強')">勉強</button>
+      <button class="tab-button" id="tab-all">すべて</button>
+      <button class="tab-button" id="tab-class">クラス</button>
+      <button class="tab-button" id="tab-club">部活</button>
+      <button class="tab-button" id="tab-study">勉強</button>
     </div>
 
     <div id="thread-list"></div>
@@ -42,7 +42,7 @@
 
     <input id="title" placeholder="タイトル">
 
-    <!-- 【追加】スレッド作成時のカテゴリ選択 -->
+    <!-- スレッド作成時のカテゴリ選択 -->
     <div style="margin: 10px 0;">
       <label for="category-select">カテゴリ：</label>
       <select id="category-select">
@@ -61,6 +61,7 @@
 
   </div>
 
+  <!-- 【修正】一番最初の確実な読み込み方式（type="module"）に戻しました -->
   <script type="module">
 
     import { initializeApp }
@@ -102,7 +103,6 @@
 
     // Firebase開始
     const app = initializeApp(firebaseConfig);
-
     const db = getDatabase(app);
 
     // スレ保存場所
@@ -121,14 +121,12 @@
       let savedId =
         localStorage.getItem("userId");
 
-      // 保存済みならそのまま使う
       if(savedId) {
 
         return savedId;
 
       }
 
-      // 新規生成
       const newId =
         "名無し" +
         Math.random()
@@ -136,7 +134,6 @@
           .substring(2, 6)
           .toUpperCase();
 
-      // 保存
       localStorage.setItem(
         "userId",
         newId
@@ -183,25 +180,22 @@
       const content =
         document.getElementById("content").value;
 
-      // 【追加】選択されたカテゴリを取得
       const category = 
         document.getElementById("category-select").value;
 
       const userId = createId();
 
-      // 空っぽの投稿を制限
       if (!title.trim() || !content.trim()) {
         alert("タイトルと内容を入力してください");
         return;
       }
 
-      // 連投防止：同じ内容を続けて投稿しようとしたらブロック
       if (content === lastThreadContent) {
         alert("同じ内容は連続で投稿できません！");
         return;
       }
 
-      // Firebase保存（categoryも一緒に保存する）
+      // Firebase保存
       push(threadRef, {
 
         id: userId,
@@ -210,14 +204,12 @@
 
         content: content,
 
-        category: category // 【追加】
+        category: category
 
       });
 
-      // 今回の投稿内容を記録
       lastThreadContent = content;
 
-      // 連投防止：3秒間ボタンを押せなくするタイマー
       button.disabled = true;
       button.innerText = "残り3秒...";
       
@@ -233,7 +225,6 @@
         }
       }, 1000);
 
-      // 入力欄をクリア
       document.getElementById("title").value = "";
       document.getElementById("content").value = "";
 
@@ -251,10 +242,8 @@
 
       div.className = "thread";
       
-      // 【追加】データ属性にカテゴリ名を保存（絞り込みで使います）
       div.setAttribute("data-category", thread.category || "クラス");
 
-      // 【追加】タイトルの横にカテゴリ名を表示するように変更
       div.innerHTML = `
         <h3>[${thread.category || "クラス"}] ${thread.title}</h3>
 
@@ -273,10 +262,8 @@
       `;
 
       // コメント保存場所
-      const commentRef =
-        ref(db, "comments/" + threadKey);
+      const commentRef = ref(db, "comments/" + threadKey);
 
-      // HTML取得
       const commentButton =
         div.querySelector(".comment-button");
 
@@ -286,7 +273,6 @@
       const commentsDiv =
         div.querySelector(".comments");
 
-      // 【連投防止】直前の返信コメントを記録する変数
       let lastCommentText = "";
 
       // コメント投稿
@@ -297,13 +283,11 @@
 
         const userId = createId();
 
-        // 空っぽのコメントを制限
         if (!comment.trim()) {
           alert("コメントを入力してください");
           return;
         }
 
-        // 連投防止：同じコメントを続けて送信しようとしたらブロック
         if (comment === lastCommentText) {
           alert("同じコメントは連続で送信できません！");
           return;
@@ -317,10 +301,8 @@
 
         });
 
-        // 今回のコメント内容を記録
         lastCommentText = comment;
 
-        // 連投防止：3秒間返信ボタンを押せなくする
         commentButton.disabled = true;
         commentButton.innerText = "3秒待ってね";
 
@@ -329,7 +311,6 @@
           commentButton.innerText = "返信";
         }, 3000);
 
-        // 入力欄をクリア
         commentInput.value = "";
 
       };
@@ -357,20 +338,26 @@
 
     });
 
-    // 【追加】カテゴリでスレッドを絞り込む関数
-    window.filterCategory = function(category) {
+    // 【追加】type="module" の中でもボタンが正常に動くように修正しました
+    function filterCategory(category) {
       const threads = document.getElementsByClassName("thread");
       
       for (let i = 0; i < threads.length; i++) {
         const threadCategory = threads[i].getAttribute("data-category");
         
         if (category === "all" || threadCategory === category) {
-          threads[i].style.display = "block"; // 一致したら表示
+          threads[i].style.display = "block";
         } else {
-          threads[i].style.display = "none";  // 一致しなければ非表示
+          threads[i].style.display = "none";
         }
       }
-    };
+    }
+
+    // ボタンをクリックした時の動きをここで完全に紐付けました
+    document.getElementById("tab-all").onclick = () => filterCategory("all");
+    document.getElementById("tab-class").onclick = () => filterCategory("クラス");
+    document.getElementById("tab-club").onclick = () => filterCategory("部活");
+    document.getElementById("tab-study").onclick = () => filterCategory("勉強");
 
   </script>
 
